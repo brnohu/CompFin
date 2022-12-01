@@ -152,35 +152,7 @@ kFd1d<V>::rollFwd(
 	int						wind,
 	kVector<kVector<V>>&	res)
 {
-	//	helps
-	int k;
-
-	//	dims
-	int n = myX.size();
-	int mm = 1;
-	int numV = (int)res.size();
-
-	//	implicit
-	if (theta != 0.0)
-	{
-		calcAx(1.0, -dt * theta, wind, true, myA);
-		for (k = 0; k < numV; ++k)
-		{
-			myVs = res[k];
-			kMatrixAlgebra::tridag(myA, myVs, res[k], myWs);
-		}
-	}
-
-	//	explicit
-	if (theta != 1.0)
-	{
-		calcAx(1.0, dt * (1.0 - theta), wind, true, myA);
-		for (k = 0; k < numV; ++k)
-		{
-			myVs = res[k];
-			kMatrixAlgebra::banmul(myA, mm, mm, myVs, res[k]);
-		}
-	}
+	//	to do: fill
 
 	//	done
 	return;
