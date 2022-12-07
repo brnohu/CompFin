@@ -1,6 +1,8 @@
 #pragma once
 
+//	includes
 #include "kMatrix.h"
+#include "kInlines.h"
 
 //	class
 namespace kMatrixAlgebra
@@ -69,6 +71,7 @@ namespace kMatrixAlgebra
 		return;
 	}
 
+	//	band diagonal matrix vector multiplication
 	template <class V>
 	void banmul(
 		const kMatrix<V>&	A,		//	n x 3
@@ -96,4 +99,29 @@ namespace kMatrixAlgebra
 		//	done
 		return;
 	}
+
+	//	transposing a banddiagonal matrix
+	template <class V>
+	void	transpose(
+		const int			mm,
+		kMatrix<V>&			A)
+	{
+		int n = A.rows()-1;
+		int i, j, k, l;
+		int jl;
+		for(i=0;i<=n;++i)
+		{
+			jl = max(0, i - mm);
+			for(j=jl;j<i;++j)
+			{
+				k = j - i + mm;
+				l = i - j + mm;
+				kInlines::swap(A(i, k), A(j, l));
+			}
+		}
+
+		//	done
+		return;
+	}
+
 }
