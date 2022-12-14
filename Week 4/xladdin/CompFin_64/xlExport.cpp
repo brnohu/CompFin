@@ -204,7 +204,10 @@ xBlackImplied(
 }
 
 extern "C" __declspec(dllexport)
-LPXLOPER12 xTridag(LPXLOPER12 A_in, LPXLOPER12 b_in)
+LPXLOPER12 
+xTridag(
+	LPXLOPER12 A_in, 
+	LPXLOPER12 b_in)
 {
 	FreeAllTempMemory();
 
@@ -228,7 +231,12 @@ LPXLOPER12 xTridag(LPXLOPER12 A_in, LPXLOPER12 b_in)
 }
 
 extern "C" __declspec(dllexport)
-LPXLOPER12 xBanmul(LPXLOPER12 A_in, LPXLOPER12 x_in, double m1_in, double m2_in)
+LPXLOPER12 
+xBanmul(
+	LPXLOPER12	A_in, 
+	LPXLOPER12	x_in, 
+	double		m1_in, 
+	double		m2_in)
 {
 	FreeAllTempMemory();
 
@@ -253,7 +261,15 @@ LPXLOPER12 xBanmul(LPXLOPER12 A_in, LPXLOPER12 x_in, double m1_in, double m2_in)
 }
 
 extern "C" __declspec(dllexport)
-LPXLOPER12 xFd1d(LPXLOPER12 t_in, LPXLOPER12 x_in, LPXLOPER12 r_in, LPXLOPER12 mu_in, LPXLOPER12 sigma_in, LPXLOPER12 v0_in, LPXLOPER12 tech_in)
+LPXLOPER12 
+xFd1d(
+	LPXLOPER12 t_in, 
+	LPXLOPER12 x_in, 
+	LPXLOPER12 r_in, 
+	LPXLOPER12 mu_in, 
+	LPXLOPER12 sigma_in, 
+	LPXLOPER12 v0_in, 
+	LPXLOPER12 tech_in)
 {
 	FreeAllTempMemory();
 
@@ -333,6 +349,85 @@ LPXLOPER12 xFd1d(LPXLOPER12 t_in, LPXLOPER12 x_in, LPXLOPER12 r_in, LPXLOPER12 m
 
 	LPXLOPER12 out = TempXLOPER12();
 	kXlUtils::setVector(fd.res()[0], out);
+	return out;
+}
+
+extern "C" __declspec(dllexport)
+LPXLOPER12 
+xBachelierFd(
+	LPXLOPER12	params,
+	LPXLOPER12	contract,
+	LPXLOPER12	gridTech)
+{
+	FreeAllTempMemory();
+
+	//	help
+	string err;
+	int numRows, numCols;
+	int i, k;
+
+	//	get params
+	double s0    = 0.0;
+	double r     = 0.0;
+	double mu    = 0.0;
+	double sigma = 0.1;
+	numRows = (int) getRows(params);
+	if(numRows>0 && !kXlUtils::getDbl(params, 0, 0, s0, &err))		return kXlUtils::setError(err);
+	if(numRows>1 && !kXlUtils::getDbl(params, 1, 0, r,  &err))		return kXlUtils::setError(err);
+	if(numRows>2 && !kXlUtils::getDbl(params, 2, 0, mu, &err))		return kXlUtils::setError(err);
+	if(numRows>3 && !kXlUtils::getDbl(params, 3, 0, sigma, &err))	return kXlUtils::setError(err);
+
+	//	get contract
+	double expiry  = 0.0;
+	double strike  = 0.0;
+	int    pc      = 1;
+	int	   ea	   = 0;
+	int	   smooth  = 0;
+	numRows = (int) getRows(contract);
+	if(numRows>0 && !kXlUtils::getDbl(contract, 0, 0, expiry, &err))	return kXlUtils::setError(err);
+	if(numRows>1 && !kXlUtils::getDbl(contract, 1, 0, strike, &err))	return kXlUtils::setError(err);
+	if(numRows>2 && !kXlUtils::getInt(contract, 2, 0, pc, &err))		return kXlUtils::setError(err);
+	if(numRows>3 && !kXlUtils::getInt(contract, 3, 0, ea, &err))		return kXlUtils::setError(err);
+	if(numRows>3 && !kXlUtils::getInt(contract, 4, 0, smooth, &err))	return kXlUtils::setError(err);
+
+	//	get grid tech
+	double theta  = 0.5;
+	int	   wind   = 0;
+	double numStd = 5.0;
+	int    numT   = 25;
+	int    numX   = 50;
+	int    numPr  = 1;
+	numRows = (int) getRows(gridTech);
+	if(numRows>0 && !kXlUtils::getDbl(gridTech, 0, 0, theta, &err))	return kXlUtils::setError(err);
+	if(numRows>1 && !kXlUtils::getInt(gridTech, 1, 0, wind, &err))	return kXlUtils::setError(err);
+	if(numRows>2 && !kXlUtils::getDbl(gridTech, 2, 0, numStd, &err))return kXlUtils::setError(err);
+	if(numRows>3 && !kXlUtils::getInt(gridTech, 3, 0, numT, &err))	return kXlUtils::setError(err);
+	if(numRows>4 && !kXlUtils::getInt(gridTech, 4, 0, numX, &err))	return kXlUtils::setError(err);
+	if(numRows>5 && !kXlUtils::getInt(gridTech, 5, 0, numPr, &err))	return kXlUtils::setError(err);
+	
+	//	run
+	double res0;
+	kVector<double> s, res;
+	if (!kBachelier::fdRunner(s0, r, mu, sigma, expiry, strike, pc, ea, smooth, theta, wind, numStd, numT, numX, numPr, res0, s, res, err)) return kXlUtils::setError(err);
+
+	//	size output
+	numRows = 3 + s.size();
+	numCols = 2;
+	LPXLOPER12 out = kXlUtils::getOper(numRows, numCols);
+
+	//	fill output
+	kXlUtils::setStr(0, 0, "res 0", out);
+	kXlUtils::setDbl(0, 1, res0, out);
+	kXlUtils::setStr(1, 0, "s", out);
+	kXlUtils::setStr(1, 1, "res", out);
+	k = 2;
+	for(k = 2, i = 0; i < s.size(); ++i, ++k)
+	{
+		kXlUtils::setDbl(k, 0, s(i), out);
+		kXlUtils::setDbl(k, 1, res(i), out);
+	}
+
+	//	done
 	return out;
 }
 
@@ -451,7 +546,19 @@ extern "C" __declspec(dllexport) int xlAutoOpen(void)
 		(LPXLOPER12)TempStr12(L""),
 		(LPXLOPER12)TempStr12(L"Solve 1d fd."),
 		(LPXLOPER12)TempStr12(L""));
-	
+
+	Excel12f(xlfRegister, 0, 11, (LPXLOPER12)&xDLL,
+		(LPXLOPER12)TempStr12(L"xBachelierFd"),
+		(LPXLOPER12)TempStr12(L"QQQQ"),
+		(LPXLOPER12)TempStr12(L"xBachelierFd"),
+		(LPXLOPER12)TempStr12(L"params, contract, gridTech"),
+		(LPXLOPER12)TempStr12(L"1"),
+		(LPXLOPER12)TempStr12(L"myOwnCppFunctions"),
+		(LPXLOPER12)TempStr12(L""),
+		(LPXLOPER12)TempStr12(L""),
+		(LPXLOPER12)TempStr12(L"Solve fd for Bachelier model."),
+		(LPXLOPER12)TempStr12(L""));
+
 	/* Free the XLL filename */
 	Excel12f(xlFree, 0, 1, (LPXLOPER12)&xDLL);
 
