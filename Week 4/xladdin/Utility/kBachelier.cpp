@@ -87,6 +87,7 @@ kBachelier::fdRunner(
 	const double		sigma,
 	const double		expiry,
 	const double		strike,
+	const bool			dig,
 	const int			pc,			//	put (-1) call (1)
 	const int			ea,			//	european (0), american (1)
 	const int			smooth,		//	smoothing
@@ -95,6 +96,7 @@ kBachelier::fdRunner(
 	const double		numStd,
 	const int			numT,
 	const int			numS,
+	const bool			update,
 	const int			numPr,
 	double&				res0,
 	kVector<double>&	s,
@@ -133,18 +135,21 @@ kBachelier::fdRunner(
 	{
 		if(smooth==0 || i==0 || i==nums-1)
 		{
-			res(i) = max(0.0, s(i) - strike);
+			if(dig) res(i) = 0.5*(kInlines::sign(s(i)-strike)+1.0);
+			else    res(i) = max(0.0, s(i) - strike);
 		}
 		else
 		{
 			xl = 0.5 * (s(i - 1) + s(i));
 			xu = 0.5 * (s(i) + s(i + 1));
-			res(i) = kFiniteDifference::smoothCall(xl, xu, strike);
+			if (dig) res(i) = kFiniteDifference::smoothDigital(xl, xu, strike);
+			else	 res(i) = kFiniteDifference::smoothCall(xl, xu, strike);
 		}
 
 		if(pc<0)
 		{
-			res(i) -= (s(i) - strike);
+			if(dig) res(i) =  1.0 - res(i);
+			else    res(i) -= (s(i) - strike);
 		}
 	}
 
@@ -168,10 +173,10 @@ kBachelier::fdRunner(
 		fd.res()(0) = res;
 		for (h = numt - 1; h >= 0; --h)
 		{
-			fd.rollBwd(dt, theta, wind, fd.res());
-			if (ea > 0)
+			fd.rollBwd(dt, update || h==(numt-1), theta, wind, fd.res());
+			if(ea>0)
 			{
-				for (i = 0; i < nums; ++i) fd.res()(0)(i) = max(res(i), fd.res()(0)(i));
+				for(i=0;i<nums;++i) fd.res()(0)(i) = max(res(i), fd.res()(0)(i));
 			}
 		}
 	}

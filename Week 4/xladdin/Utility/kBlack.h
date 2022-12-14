@@ -51,11 +51,10 @@ kBlack::call(
 	// expiry ok?
 	if(expiry<=0) return max(forward-strike,0.0);
 
-	V std		= volatility*sqrt(expiry);
-	V xPlus		= log(forward/strike)/std + 0.5*std;
-	V xMinus	= xPlus - std;
-	V pdf;
-	V res		= forward*kSpecialFunction::normalCdf(xPlus,pdf) - strike*kSpecialFunction::normalCdf(xMinus,pdf);
+	V std	 = volatility*sqrt(expiry);
+	V xPlus	 = log(forward/strike)/std + 0.5*std;
+	V xMinus = xPlus - std;
+	V res	 = forward*kSpecialFunction::normalCdf(xPlus) - strike*kSpecialFunction::normalCdf(xMinus);
 
 	// return
 	return res;

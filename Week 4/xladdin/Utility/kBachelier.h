@@ -51,6 +51,7 @@ public:
 		const double		sigma,
 		const double		expiry,
 		const double		strike,
+		const bool			dig,
 		const int			pc,			//	put (-1) call (1)
 		const int			ea,			//	european (0), american (1)
 		const int			smooth,		//	smoothing
@@ -59,6 +60,7 @@ public:
 		const double		numStd,
 		const int			numt,
 		const int			numx,
+		const bool			update,
 		const int			numPr,
 		double&				res0,
 		kVector<double>&	s,
@@ -81,9 +83,9 @@ kBachelier::call(
 
 	V std = volatility * sqrt(expiry);
 	V x = (forward - strike) / std;
-	V pdf, res;
-	res = (forward - strike) * kSpecialFunction::normalCdf(x, pdf);
-	res += std * pdf;
+	V res;
+	res =  (forward - strike) * kSpecialFunction::normalCdf(x);
+	res += std * kSpecialFunction::normalPdf(x);
 
 	//	done
 	return res;

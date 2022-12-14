@@ -339,11 +339,11 @@ xFd1d(
 	{
 		if(fb<=0)
 		{
-			fd.rollBwd(dt,theta,wind,fd.res());
+			fd.rollBwd(dt,true,theta,wind,fd.res());
 		}
 		else
 		{
-			fd.rollFwd(dt,theta,wind,fd.res());
+			fd.rollFwd(dt,true,theta,wind,fd.res());
 		}
 	}
 
@@ -380,15 +380,17 @@ xBachelierFd(
 	//	get contract
 	double expiry  = 0.0;
 	double strike  = 0.0;
+	int    dig	   = 0;
 	int    pc      = 1;
 	int	   ea	   = 0;
 	int	   smooth  = 0;
 	numRows = getRows(contract);
 	if(numRows>0 && !kXlUtils::getDbl(contract, 0, 0, expiry, &err))	return kXlUtils::setError(err);
 	if(numRows>1 && !kXlUtils::getDbl(contract, 1, 0, strike, &err))	return kXlUtils::setError(err);
-	if(numRows>2 && !kXlUtils::getInt(contract, 2, 0, pc, &err))		return kXlUtils::setError(err);
-	if(numRows>3 && !kXlUtils::getInt(contract, 3, 0, ea, &err))		return kXlUtils::setError(err);
-	if(numRows>3 && !kXlUtils::getInt(contract, 4, 0, smooth, &err))	return kXlUtils::setError(err);
+	if(numRows>2 && !kXlUtils::getInt(contract, 2, 0, dig, &err))		return kXlUtils::setError(err);
+	if(numRows>3 && !kXlUtils::getInt(contract, 3, 0, pc, &err))		return kXlUtils::setError(err);
+	if(numRows>4 && !kXlUtils::getInt(contract, 4, 0, ea, &err))		return kXlUtils::setError(err);
+	if(numRows>5 && !kXlUtils::getInt(contract, 5, 0, smooth, &err))	return kXlUtils::setError(err);
 
 	//	get grid tech
 	double theta  = 0.5;
@@ -396,6 +398,7 @@ xBachelierFd(
 	double numStd = 5.0;
 	int    numT   = 25;
 	int    numX   = 50;
+	int    update = 1;
 	int    numPr  = 1;
 	numRows = getRows(gridTech);
 	if(numRows>0 && !kXlUtils::getDbl(gridTech, 0, 0, theta, &err))	return kXlUtils::setError(err);
@@ -403,12 +406,13 @@ xBachelierFd(
 	if(numRows>2 && !kXlUtils::getDbl(gridTech, 2, 0, numStd, &err))return kXlUtils::setError(err);
 	if(numRows>3 && !kXlUtils::getInt(gridTech, 3, 0, numT, &err))	return kXlUtils::setError(err);
 	if(numRows>4 && !kXlUtils::getInt(gridTech, 4, 0, numX, &err))	return kXlUtils::setError(err);
-	if(numRows>5 && !kXlUtils::getInt(gridTech, 5, 0, numPr, &err))	return kXlUtils::setError(err);
+	if(numRows>5 && !kXlUtils::getInt(gridTech, 5, 0, update, &err))return kXlUtils::setError(err);
+	if(numRows>6 && !kXlUtils::getInt(gridTech, 6, 0, numPr, &err))	return kXlUtils::setError(err);
 	
 	//	run
 	double res0;
 	kVector<double> s, res;
-	if (!kBachelier::fdRunner(s0, r, mu, sigma, expiry, strike, pc, ea, smooth, theta, wind, numStd, numT, numX, numPr, res0, s, res, err)) return kXlUtils::setError(err);
+	if (!kBachelier::fdRunner(s0, r, mu, sigma, expiry, strike, dig>0, pc, ea, smooth, theta, wind, numStd, numT, numX, update>0, numPr, res0, s, res, err)) return kXlUtils::setError(err);
 
 	//	size output
 	numRows = 3 + s.size();
@@ -418,10 +422,9 @@ xBachelierFd(
 	//	fill output
 	kXlUtils::setStr(0, 0, "res 0", out);
 	kXlUtils::setDbl(0, 1, res0, out);
-	kXlUtils::setStr(1, 0, "s", out);
-	kXlUtils::setStr(1, 1, "res", out);
-	k = 2;
-	for(k = 2, i = 0; i < s.size(); ++i, ++k)
+	kXlUtils::setStr(2, 0, "s", out);
+	kXlUtils::setStr(2, 1, "res", out);
+	for(k=3, i=0; i<s.size(); ++i, ++k)
 	{
 		kXlUtils::setDbl(k, 0, s(i), out);
 		kXlUtils::setDbl(k, 1, res(i), out);

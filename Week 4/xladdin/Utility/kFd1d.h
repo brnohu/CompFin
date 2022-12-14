@@ -27,37 +27,39 @@ public:
 		const kVector<V>&		x,
 		bool					log);
 
-	const kVector<V>& r()	const { return myR; }
-	const kVector<V>& mu()	const { return myMu; }
-	const kVector<V>& var()	const { return myVar; }
-	const kVector<V>& x()	const { return myX; }
-	const kVector<kVector<V>>& res() const { return myRes; }
+	const kVector<V>&			r()		const { return myR; }
+	const kVector<V>&			mu()	const { return myMu; }
+	const kVector<V>&			var()	const { return myVar; }
+	const kVector<V>&			x()		const { return myX; }
+	const kVector<kVector<V>>&	res()	const { return myRes; }
 
-	kVector<V>& r()		{ return myR; }
-	kVector<V>& mu()	{ return myMu; }
-	kVector<V>& var()	{ return myVar; }
-	kVector<V>& x()		{ return myX; }
-	kVector<kVector<V>>& res() { return myRes; }
+	kVector<V>&					r()		{ return myR; }
+	kVector<V>&					mu()	{ return myMu; }
+	kVector<V>&					var()	{ return myVar; }
+	kVector<V>&					x()		{ return myX; }
+	kVector<kVector<V>>&		res()	{ return myRes; }
 
 	//	operator
 	void	calcAx(
-		const V&				one,
-		const V&				dtTheta,
+		V						one,
+		V						dtTheta,
 		int						wind,
 		bool					tr,
 		kMatrix<V>&				A) const;
 
 	//	roll bwd
 	void	rollBwd(
-		const V&				dt,
-		const V&				theta,
+		V						dt,
+		bool					update,
+		V						theta,
 		int						wind,
 		kVector<kVector<V>>&	res);
 
 	//	roll fwd
 	void	rollFwd(
-		const V&				dt,
-		const V&				theta,
+		V						dt,
+		bool					update,
+		V						theta,
 		int						wind,
 		kVector<kVector<V>>&	res);
 
@@ -70,7 +72,7 @@ private:
 	kMatrix<V>	myDxd, myDxu, myDx, myDxx;
 
 	//	operator matrix
-	kMatrix<V>	myA;
+	kMatrix<V>	myAe, myAi;
 
 	//	helper
 	kVector<V>	myVs, myWs;
@@ -89,6 +91,7 @@ kFd1d<V>::init(
 {
 	myX = x;
 	myRes.resize(numV);
+	for(int k=0;k<numV;++k) myRes[k].resize(myX.size());
 
 	//	resize params
 	myR.resize(myX.size(), 0.0);
@@ -115,7 +118,8 @@ kFd1d<V>::init(
 		}
 	}
 
-	myA.resize(myX.size(),numC);
+	myAe.resize(myX.size(),numC);
+	myAi.resize(myX.size(),numC);
 	myVs.resize(myX.size());
 	myWs.resize(myX.size());
 
@@ -127,8 +131,8 @@ kFd1d<V>::init(
 template <class V>
 void
 kFd1d<V>::calcAx(
-	const V&		one,
-	const V&		dtTheta,
+	V				one,
+	V				dtTheta,
 	int				wind,
 	bool			tr,
 	kMatrix<V>&		A) const
@@ -174,8 +178,9 @@ kFd1d<V>::calcAx(
 template <class V>
 void
 kFd1d<V>::rollBwd(
-	const V&				dt,
-	const V&				theta,
+	V						dt,
+	bool					update,
+	V						theta,
 	int						wind,
 	kVector<kVector<V>>&	res)
 {
@@ -188,24 +193,24 @@ kFd1d<V>::rollBwd(
 	int numV = (int)res.size();
 
 	//	explicit
-	if (theta != 1.0)
+	if(theta!=1.0)
 	{
-		calcAx(1.0, dt * (1.0 - theta), wind, false, myA);
+		if(update) calcAx(1.0, dt*(1.0-theta), wind, false, myAe);
 		for (k = 0; k < numV; ++k)
 		{
 			myVs = res[k];
-			kMatrixAlgebra::banmul(myA, mm, mm, myVs, res[k]);
+			kMatrixAlgebra::banmul(myAe, mm, mm, myVs, res[k]);
 		}
 	}
 
 	//	implicit
-	if (theta != 0.0)
+	if(theta!=0.0)
 	{
-		calcAx(1.0, -dt * theta, wind, false, myA);
+		if(update) calcAx(1.0, -dt*theta, wind, false, myAi);
 		for (k = 0; k < numV; ++k)
 		{
 			myVs = res[k];
-			kMatrixAlgebra::tridag(myA, myVs, res[k], myWs);
+			kMatrixAlgebra::tridag(myAi, myVs, res[k], myWs);
 		}
 	}
 
@@ -217,8 +222,9 @@ kFd1d<V>::rollBwd(
 template <class V>
 void
 kFd1d<V>::rollFwd(
-	const V&				dt,
-	const V&				theta,
+	V						dt,
+	bool					update,
+	V						theta,
 	int						wind,
 	kVector<kVector<V>>&	res)
 {
@@ -233,22 +239,22 @@ kFd1d<V>::rollFwd(
 	//	implicit
 	if(theta!=0.0)
 	{
-		calcAx(1.0,-dt*theta,wind,true,myA);
+		if(update) calcAx(1.0,-dt*theta,wind,true,myAi);
 		for(k=0;k<numV;++k)
 		{
 			myVs = res[k];
-			kMatrixAlgebra::tridag(myA,myVs,res[k],myWs);
+			kMatrixAlgebra::tridag(myAi,myVs,res[k],myWs);
 		}
 	}
 
 	//	explicit
 	if(theta!=1.0)
 	{
-		calcAx(1.0,dt*(1.0-theta),wind,true,myA);
+		if(update) calcAx(1.0,dt*(1.0-theta),wind,true,myAe);
 		for(k=0;k<numV;++k)
 		{
 			myVs = res[k];
-			kMatrixAlgebra::banmul(myA,mm,mm,myVs,res[k]);
+			kMatrixAlgebra::banmul(myAe,mm,mm,myVs,res[k]);
 		}
 	}
 

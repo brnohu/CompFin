@@ -30,7 +30,7 @@ kXlUtils::getOper(
     int cols)
 {
     LPXLOPER12 out = TempXLOPER12();
-    resize(out, 1, 1);
+    resize(out, rows, cols);
     return out;
 }
 

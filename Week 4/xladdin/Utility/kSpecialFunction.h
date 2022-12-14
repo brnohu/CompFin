@@ -23,7 +23,7 @@ public:
 
 	//	normal cdf
 	template <class V>
-	static V	normalCdf(V x, V& pdf);
+	static V	normalCdf(V x);
 
 
 };
@@ -65,19 +65,16 @@ kSpecialFunction::normalPol(
 template <class V>
 V
 kSpecialFunction::normalCdf(
-	V	x,
-	V& pdf)
+	V	x)
 {
-	//	calc cdf(|x|)
-	pdf = normalPdf(x);
-	V res = pdf * normalPol(fabs(x));
-
-	//	tjek
-	if (x > 0.0) res = 1.0 - res;
+	//	calc
+	const double sqrt2inv = 0.7071'0678'1186'5474'6;
+	V res = 0.5*erfc(-x*sqrt2inv);
 
 	//	done
 	return res;
 }
+
 
 
 
