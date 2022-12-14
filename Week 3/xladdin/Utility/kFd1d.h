@@ -97,19 +97,12 @@ kFd1d<V>::init(
 	myMu.resize(myX.size(), 0.0);
 	myVar.resize(myX.size(), 0.0);
 
-	int numC = 3;
-
-	myDxd.resize(myX.size(),numC);
-	myDx .resize(myX.size(),numC);
-	myDxu.resize(myX.size(),numC);
-	myDxx.resize(myX.size(),numC);
-
-	if(myX.empty()) return;
-
 	kFiniteDifference::dx(-1,myX,myDxd);
 	kFiniteDifference::dx( 0,myX,myDx);
 	kFiniteDifference::dx( 1,myX,myDxu);
 	kFiniteDifference::dxx(  myX,myDxx);
+
+	int numC = myDxx.cols();
 
 	//	log transform case
 	myLog = log;
@@ -141,7 +134,42 @@ kFd1d<V>::calcAx(
 	bool			tr,
 	kMatrix<V>&		A) const
 {
-	// todo: implement
+	//	dims
+	int n  = myX.size();
+	int m  = myDxx.cols();
+	int mm = m / 2;
+
+	//	resize
+	A.resize(n, myDxx.cols());
+
+	//	helps
+	int i, j;
+
+	//	first order operator
+	const kMatrix<V>*    Dx = 0;
+	if (wind < 0)	     Dx = &myDxd;
+	else if (wind == 0)  Dx = &myDx;
+	else if (wind == 1)  Dx = &myDxu;
+
+	//	loop
+	for(i=0;i<n;++i)
+	{
+		if(wind>1)
+		{
+			Dx = myMu(i)<0.0 ? &myDxd : &myDxu;
+		}
+		for(j=0;j<m;++j)
+		{
+			A(i,j) = dtTheta * (myMu(i) * (*Dx)(i, j) + 0.5 * myVar(i) * myDxx(i, j));
+		}
+		A(i,mm) += one - dtTheta * myR(i);
+	}
+
+	//	transpose
+	if(tr) kMatrixAlgebra::transpose(mm, A);
+
+	//	done
+	return;
 }
 
 //	roll bwd
@@ -158,7 +186,7 @@ kFd1d<V>::rollBwd(
 
 	//	dims
 	int n = myX.size();
-	int mm = 1;
+	int mm = myDxx.cols()/2;
 	int numV = (int)res.size();
 
 	//	explicit
@@ -196,8 +224,36 @@ kFd1d<V>::rollFwd(
 	int						wind,
 	kVector<kVector<V>>&	res)
 {
-	//	to do: fill
+	//	dims
+	int numV = res.size();
+	int mm = myDxx.cols() / 2;
+
+	//	help
+	int k;
+
+	//	implicit
+	if (theta != 0.0)
+	{
+		calcAx(1.0, -dt * theta, wind, true, myA);
+		for (k = 0; k < numV; ++k)
+		{
+			myVs = res[k];
+			kMatrixAlgebra::tridag(myA, myVs, res[k], myWs);
+		}
+	}
+
+	//	explicit
+	if (theta != 1.0)
+	{
+		calcAx(1.0, dt * (1.0 - theta), wind, true, myA);
+		for (k = 0; k < numV; ++k)
+		{
+			myVs = res[k];
+			kMatrixAlgebra::banmul(myA, mm, mm, myVs, res[k]);
+		}
+	}
 
 	//	done
 	return;
 }
+
