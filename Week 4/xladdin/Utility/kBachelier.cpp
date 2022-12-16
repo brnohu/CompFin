@@ -111,12 +111,16 @@ kBachelier::fdRunner(
 	double std  = sigma * sqrt(t);
 	double sl   = s0 - numStd * std;
 	double su   = s0 + numStd * std;
-	int    nums = 2*(max(0, numS)/2+1);
-	if(numS<=1 || sl==su)
+	int    nums = 2*(numS/2);
+	double ds   = (su-sl)/max(1,nums);
+	if(nums<=0 || sl==su)
 	{
 		nums = 1;
 	}
-	double ds = (su-sl)/nums;
+	else
+	{
+		++nums;
+	}
 	s.resize(nums);
 	s(0) = sl;
  	for(i=1;i<nums;++i)
