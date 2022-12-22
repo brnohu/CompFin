@@ -434,6 +434,89 @@ xBachelierFd(
 	return out;
 }
 
+extern "C" __declspec(dllexport)
+LPXLOPER12
+xBlackFd(
+	LPXLOPER12	params,
+	LPXLOPER12	contract,
+	LPXLOPER12	gridTech)
+{
+	FreeAllTempMemory();
+
+	//	help
+	string err;
+	int numRows, numCols;
+	int i, k;
+
+	//	get params
+	double s0 = 0.0;
+	double r = 0.0;
+	double mu = 0.0;
+	double sigma = 0.1;
+	numRows = getRows(params);
+	if (numRows > 0 && !kXlUtils::getDbl(params, 0, 0, s0, &err))		return kXlUtils::setError(err);
+	if (numRows > 1 && !kXlUtils::getDbl(params, 1, 0, r, &err))		return kXlUtils::setError(err);
+	if (numRows > 2 && !kXlUtils::getDbl(params, 2, 0, mu, &err))		return kXlUtils::setError(err);
+	if (numRows > 3 && !kXlUtils::getDbl(params, 3, 0, sigma, &err))	return kXlUtils::setError(err);
+
+	//	get contract
+	double expiry = 0.0;
+	double strike = 0.0;
+	int    dig = 0;
+	int    pc = 1;
+	int	   ea = 0;
+	int	   smooth = 0;
+	numRows = getRows(contract);
+	if (numRows > 0 && !kXlUtils::getDbl(contract, 0, 0, expiry, &err))	return kXlUtils::setError(err);
+	if (numRows > 1 && !kXlUtils::getDbl(contract, 1, 0, strike, &err))	return kXlUtils::setError(err);
+	if (numRows > 2 && !kXlUtils::getInt(contract, 2, 0, dig, &err))		return kXlUtils::setError(err);
+	if (numRows > 3 && !kXlUtils::getInt(contract, 3, 0, pc, &err))		return kXlUtils::setError(err);
+	if (numRows > 4 && !kXlUtils::getInt(contract, 4, 0, ea, &err))		return kXlUtils::setError(err);
+	if (numRows > 5 && !kXlUtils::getInt(contract, 5, 0, smooth, &err))	return kXlUtils::setError(err);
+
+	//	get grid tech
+	double theta = 0.5;
+	int	   wind = 0;
+	double numStd = 5.0;
+	int    numT = 25;
+	int    numX = 50;
+	int    update = 1;
+	int    numPr = 1;
+	numRows = getRows(gridTech);
+	if (numRows > 0 && !kXlUtils::getDbl(gridTech, 0, 0, theta, &err))	return kXlUtils::setError(err);
+	if (numRows > 1 && !kXlUtils::getInt(gridTech, 1, 0, wind, &err))	return kXlUtils::setError(err);
+	if (numRows > 2 && !kXlUtils::getDbl(gridTech, 2, 0, numStd, &err))return kXlUtils::setError(err);
+	if (numRows > 3 && !kXlUtils::getInt(gridTech, 3, 0, numT, &err))	return kXlUtils::setError(err);
+	if (numRows > 4 && !kXlUtils::getInt(gridTech, 4, 0, numX, &err))	return kXlUtils::setError(err);
+	if (numRows > 5 && !kXlUtils::getInt(gridTech, 5, 0, update, &err))return kXlUtils::setError(err);
+	if (numRows > 6 && !kXlUtils::getInt(gridTech, 6, 0, numPr, &err))	return kXlUtils::setError(err);
+
+	//	run
+	double res0;
+	kVector<double> s, res;
+	if (!kBlack::fdRunner(s0, r, mu, sigma, expiry, strike, dig > 0, pc, ea, smooth, theta, wind, numStd, numT, numX, update > 0, numPr, res0, s, res, err)) return kXlUtils::setError(err);
+
+	//	size output
+	numRows = 3 + s.size();
+	numCols = 2;
+	LPXLOPER12 out = kXlUtils::getOper(numRows, numCols);
+
+	//	fill output
+	kXlUtils::setStr(0, 0, "res 0", out);
+	kXlUtils::setDbl(0, 1, res0, out);
+	kXlUtils::setStr(2, 0, "s", out);
+	kXlUtils::setStr(2, 1, "res", out);
+	for (k = 3, i = 0; i < s.size(); ++i, ++k)
+	{
+		kXlUtils::setDbl(k, 0, s(i), out);
+		kXlUtils::setDbl(k, 1, res(i), out);
+	}
+
+	//	done
+	return out;
+}
+
+
 
 //	Registers
 
@@ -555,6 +638,18 @@ extern "C" __declspec(dllexport) int xlAutoOpen(void)
 		(LPXLOPER12)TempStr12(L"xBachelierFd"),
 		(LPXLOPER12)TempStr12(L"QQQQ"),
 		(LPXLOPER12)TempStr12(L"xBachelierFd"),
+		(LPXLOPER12)TempStr12(L"params, contract, gridTech"),
+		(LPXLOPER12)TempStr12(L"1"),
+		(LPXLOPER12)TempStr12(L"myOwnCppFunctions"),
+		(LPXLOPER12)TempStr12(L""),
+		(LPXLOPER12)TempStr12(L""),
+		(LPXLOPER12)TempStr12(L"Solve fd for Bachelier model."),
+		(LPXLOPER12)TempStr12(L""));
+
+	Excel12f(xlfRegister, 0, 11, (LPXLOPER12)&xDLL,
+		(LPXLOPER12)TempStr12(L"xBlackFd"),
+		(LPXLOPER12)TempStr12(L"QQQQ"),
+		(LPXLOPER12)TempStr12(L"xBlackFd"),
 		(LPXLOPER12)TempStr12(L"params, contract, gridTech"),
 		(LPXLOPER12)TempStr12(L"1"),
 		(LPXLOPER12)TempStr12(L"myOwnCppFunctions"),
