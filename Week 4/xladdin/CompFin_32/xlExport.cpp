@@ -10,6 +10,7 @@
 #include "../Utility/kBlack.h"
 #include "../Utility/xlUtils.h"
 #include "../Utility/kFd1d.h"
+#include "../Utility/kAde.h"
 
 //	Wrappers
 
@@ -516,6 +517,94 @@ xBlackFd(
 	return out;
 }
 
+extern "C" __declspec(dllexport)
+LPXLOPER12
+xAde(
+	LPXLOPER12 t_in,
+	LPXLOPER12 x_in,
+	LPXLOPER12 r_in,
+	LPXLOPER12 mu_in,
+	LPXLOPER12 sigma_in,
+	LPXLOPER12 v0_in,
+	LPXLOPER12 tech_in)
+{
+	FreeAllTempMemory();
+
+	//	help
+	string err;
+
+	//	get t 
+	double t;
+	if (!kXlUtils::getDbl(t_in, 0, 0, t, &err)) return kXlUtils::setError(err);
+
+	//	get tech
+	kVector<double> tech;
+	if (!kXlUtils::getVector(tech_in, tech))
+		return kXlUtils::setError("input 1 is not a vector");
+
+	//	standard data
+	int    numt  = tech.size() > 0 ? (int)std::lround(tech(0)) : 1;
+	double theta = tech.size() > 1 ? tech(1) : 0.5;
+	int    fb    = tech.size() > 2 ? (int)std::lround(tech(2)) : -1;
+	int    log   = tech.size() > 3 ? (int)std::lround(tech(3)) : 0;
+	int    wind  = tech.size() > 4 ? (int)std::lround(tech(4)) : 0;
+
+	//	fd grid
+	kAde<double> ade;
+	if (!kXlUtils::getVector(x_in, ade.myX))
+		return kXlUtils::setError("input 1 is not a vector");
+
+	int n = ade.myX.size();
+
+	//	init fd
+	ade.init(1, ade.myX);
+
+	if (!kXlUtils::getVector(r_in, ade.myR))
+		return kXlUtils::setError("r is not a vector");
+
+	if (n != ade.myR.size())
+		return kXlUtils::setError("r must have same size as x");
+
+	if (!kXlUtils::getVector(mu_in,ade.myMu))
+		return kXlUtils::setError("mu is not a vector");
+
+	if (n != ade.myMu.size())
+		return kXlUtils::setError("mu must have same size as x");
+
+	if (!kXlUtils::getVector(sigma_in, ade.myVar))
+		return kXlUtils::setError("sigma is not a vector");
+
+	if (n != ade.myVar.size())
+		return kXlUtils::setError("sigma must have same size as x");
+
+	auto& fd_var = ade.myVar;
+	for (int i = 0; i < fd_var.size(); ++i)
+		fd_var(i) *= fd_var(i);
+
+	ade.myRes.resize(1);
+	if (!kXlUtils::getVector(v0_in, ade.myRes[0]))
+		return kXlUtils::setError("input 2 is not a vector");
+
+	if (n != ade.myRes[0].size())
+		return kXlUtils::setError("v0 must have same size as x");
+
+	double dt = t / numt;
+	for (int n = 0; n < numt; ++n)
+	{
+		if (fb <= 0)
+		{
+			ade.rollBwd(dt, wind, ade.myRes);
+		}
+		else
+		{
+			ade.rollFwd(dt, wind, ade.myRes);
+		}
+	}
+
+	LPXLOPER12 out = TempXLOPER12();
+	kXlUtils::setVector(ade.myRes[0], out);
+	return out;
+}
 
 
 //	Registers
@@ -656,6 +745,18 @@ extern "C" __declspec(dllexport) int xlAutoOpen(void)
 		(LPXLOPER12)TempStr12(L""),
 		(LPXLOPER12)TempStr12(L""),
 		(LPXLOPER12)TempStr12(L"Solve fd for Bachelier model."),
+		(LPXLOPER12)TempStr12(L""));
+
+	Excel12f(xlfRegister, 0, 11, (LPXLOPER12)&xDLL,
+		(LPXLOPER12)TempStr12(L"xAde"),
+		(LPXLOPER12)TempStr12(L"QQQQQQQQ"),
+		(LPXLOPER12)TempStr12(L"xAde"),
+		(LPXLOPER12)TempStr12(L"t, x, r, mu, sigma, v0, tech"),
+		(LPXLOPER12)TempStr12(L"1"),
+		(LPXLOPER12)TempStr12(L"myOwnCppFunctions"),
+		(LPXLOPER12)TempStr12(L""),
+		(LPXLOPER12)TempStr12(L""),
+		(LPXLOPER12)TempStr12(L"Solve 1d ade."),
 		(LPXLOPER12)TempStr12(L""));
 
 	/* Free the XLL filename */

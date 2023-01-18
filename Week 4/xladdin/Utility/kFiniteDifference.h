@@ -23,7 +23,7 @@ public:
 		int n = x.size() - 1;
 		if(wind>=0)
 		{
-			V dxu   =  x(1)-x(0);
+			V dxu    =  x(1)-x(0);
 			out(0,0) =  V(0.0);
 			out(0,1) = -1.0/dxu;
 			out(0,2) =  1.0/dxu;
@@ -104,6 +104,57 @@ public:
 		out(n,0) = V(0.0);
 		out(n,1) = V(0.0);
 		out(n,2) = V(0.0);
+
+		//	done
+		return;
+	}
+
+	//	dx down
+	template <class V>
+	static void		dxd(
+		const kVector<V>&	x,
+		kMatrix<V>&			out) //	n x 2
+	{
+		out.resize(x.size(), 2);
+		
+		if(!x.size()) return;
+
+		V dxl;
+
+		out(0, 0) = 0.0;
+		out(0, 1) = 0.0;
+		for(int i=1;i<x.size();++i)
+		{
+			dxl = x(i) - x(i - 1);
+			out(i, 0) = -1.0/dxl;
+			out(i, 1) =  1.0/dxl;
+		}
+		
+		//	done
+		return;
+	}
+
+	//	dx up
+	template <class V>
+	static void		dxu(
+		const kVector<V>&	x,
+		kMatrix<V>&			out)	//	n x 2
+	{
+		out.resize(x.size(), 2);
+
+		if (!x.size()) return;
+
+		V dxu;
+
+		int i, n = x.size() - 1;
+		for(i=0;i<n;++i)
+		{
+			dxu = x(i + 1) - x(i);
+			out(i, 0) = -1.0/dxu;
+			out(i, 1) =  1.0/dxu;
+		}
+		out(n, 0) = 0.0;
+		out(n, 1) = 0.0;
 
 		//	done
 		return;

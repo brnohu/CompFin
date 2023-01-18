@@ -51,6 +51,9 @@
     <ClInclude Include="kFd1d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="kAde.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kMatrixAlgebra.cpp">
