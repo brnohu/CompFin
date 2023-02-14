@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="kAde.h" />
     <ClInclude Include="kBachelier.h" />
     <ClInclude Include="kBlack.h" />
     <ClInclude Include="kConstants.h" />
