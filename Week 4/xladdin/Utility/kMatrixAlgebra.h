@@ -38,10 +38,10 @@ namespace kMatrixAlgebra
 	//	tridag: solves A u = r when A is tridag
 	template <class V>
 	void	tridag(
-		const kMatrix<V>&	A,		//	n x 3
-		const kVector<V>&	r,
-		kVector<V>&			u,
-		kVector<V>&			gam)
+		const kMatrixView<V>	A,		//	n x 3
+		const kVectorView<V>	r,
+		kVectorView<V>			u,
+		kVectorView<V>			gam)
 	{
 		//	helps
 		V bet;
@@ -49,10 +49,6 @@ namespace kMatrixAlgebra
 
 		//	dim
 		int n = A.rows();
-
-		//	check dim
-		if(u.size()<n) u.resize(n);
-		if(gam.size()<n) gam.resize(n);
 
 		//	go
 		u(0) = r(0)/(bet=A(0,1));
@@ -71,18 +67,37 @@ namespace kMatrixAlgebra
 		return;
 	}
 
+	//	tridag: solves A u = r when A is tridag
+	template <class V>
+	void	tridag(
+		const kMatrix<V>&	    A,		//	n x 3
+		const kVector<V>&	    r,
+		kVector<V>&				u,
+		kVector<V>&				gam)
+	{
+		//	dim
+		int n = A.rows();
+
+		//	check dim
+		if(u.size()<n) u.resize(n);
+		if(gam.size()<n) gam.resize(n);
+
+		tridag(A(), r(), u(), gam());
+		//	done
+		return;
+	}
+
 	//	band diagonal matrix vector multiplication
 	template <class V>
 	void banmul(
-		const kMatrix<V>&	A,		//	n x 3
-		int					m1,
-		int					m2,
-		const kVector<V>&	b,
-		kVector<V>&			x)
+		const kMatrixView<V> A,		//	n x 3
+		int					 m1,
+		int					 m2,
+		const kVectorView<V> b,
+		kVectorView<V>		 x)
 	{
 		int n = A.rows()-1;
 		V xi;
-		x.resize(n+1);
 		for(int i = 0;i<=n;++i)
 		{
 			int jl = max<int>(0, i - m1);
@@ -95,6 +110,24 @@ namespace kMatrixAlgebra
 			}
 			x(i) = xi;
 		}
+
+		//	done
+		return;
+	}
+
+	//	band diagonal matrix vector multiplication
+	template <class V>
+	void banmul(
+		const kMatrix<V>&	A,		//	n x 3
+		int					m1,
+		int					m2,	 
+		const kVector<V>&	b,
+		kVector<V>&			x)
+	{
+		int n = A.rows()-1;
+		x.resize(n+1);
+
+		banmul(A(), m1, m2, b(), x());
 
 		//	done
 		return;

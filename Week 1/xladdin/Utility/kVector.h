@@ -2,15 +2,20 @@
 
 #include <vector>
 #include <set>
+#include<span>
 #include <algorithm>
 #include <stdexcept>
 
 using std::vector;
 using std::set;
+using std::span;
 using std::enable_if_t;
 using std::conditional;
 using std::min;
 using std::max;
+
+template<typename T> class kMatrixView;
+template<typename T> class kVectorView;
 
 template<typename T=double> 
 class kVector 
@@ -81,6 +86,98 @@ public:
 	const Container&	data() const{return myData;}
 	Container&			data() {return myData;}
 
+	//	to view
+	explicit operator       kVectorView<T>()	          { return kVectorView<T>(*this); } 
+	explicit operator const kVectorView<T>()        const { return kVectorView<T>(*this); } 
+
+	const kVectorView<T> operator()()               const { return kVectorView<T>(*this); }
+	kVectorView<T>       operator()()                     { return kVectorView<T>(*this); }
+	const kVectorView<T> operator()(int i,int size) const { return kVectorView<T>(&(*this)(i),size); }
+	kVectorView<T>		 operator()(int i,int size)       { return kVectorView<T>(&(*this)(i),size); }
+
+	const kMatrixView<T> asRowMatrix() const { return kMatrixView<T>(data(),1,size()); }
+	const kMatrixView<T> asColMatrix() const { return kMatrixView<T>(data(),size(),1); }
+	kMatrixView<T> asRowMatrix()			 { return kMatrixView<T>(data(),1,size()); }
+	kMatrixView<T> asColMatrix()             { return kMatrixView<T>(data(),size(),1); }
+
 private:
 	Container myData;
+};
+
+template<typename T> class kMatrixView;
+
+template<typename T> 
+class kVectorView
+{
+public:
+	//	declarations
+	using view = span<T>;
+	using value_type = T;
+
+	//	trivi c'tors
+	kVectorView()noexcept=default;
+	kVectorView(const kVectorView&)noexcept=default;
+	kVectorView(kVectorView&&) noexcept=default;
+	~kVectorView()noexcept=default;
+
+	//	c'tors will make a view on the rhs (i.e. updating values will update the rhs)
+	kVectorView(kVector<T>& rhs): myView(rhs.data()){}
+	kVectorView(const kVector<T>& rhs) : myView(const_cast<kVector<T>&>(rhs).data()){}
+	kVectorView(vector<T>& rhs) : myView(rhs){}
+	kVectorView(const vector<T>& rhs) : myView(const_cast<vector<T>&>(rhs)){}
+	kVectorView(T& rhs) : myView(&rhs,1){}
+	kVectorView(const T& rhs) : myView(&const_cast<T&>(rhs),1){}
+	explicit kVectorView(view& rhs) : myView(rhs){}
+	kVectorView(T* t, size_t count) : myView(t,count){}
+	kVectorView(const T* t, size_t count) : myView(const_cast<T*>(t),count){}
+
+	//	trivi assign
+	kVectorView& operator=(const kVectorView&)noexcept=default;
+	kVectorView& operator=(kVectorView&&) noexcept=default;
+
+	//	assign from single value
+	kVectorView& operator=(const T& t)
+	{
+		const int s = (int)myView.size();
+		for(int i=0;i<s;++i) myView[i]=t;
+		return *this;
+	}
+
+	//	to matrix view
+	kMatrixView<T> asRowMatrix(){return kMatrixView<T>(1,size(),data());}
+	kMatrixView<T> asColMatrix(){return kMatrixView<T>(size(),1,data());}
+
+	//	to view
+	const kVectorView<T> operator()(int i,int size)	const{return kVectorView<T>(&(*this)(i),size);}
+	kVectorView<T>		 operator()(int i,int size)	{return kVectorView<T>(&(*this)(i),size);}
+
+	//	element access
+	const T& operator[](int i) const
+	{
+#ifdef _DEBUG
+		if(i<0 || i>=size()) throw std::runtime_error("kVectorView subscript out of range");
+#endif
+		return myView[i];
+	}
+
+	T& operator[](int i) 
+	{
+#ifdef _DEBUG
+		if(i<0 || i>=size()) throw std::runtime_error("kVectorView subscript out of range");
+#endif
+		return myView[i];
+	}
+
+	const T&	operator()(int i)	const{return operator[](i);}
+	T&			operator()(int i)	{return operator[](i);}
+
+	//	funcs
+	int			size()				const{return (int)myView.size();}
+	bool		empty()				const{return size()==0;}
+
+	const view& data()	const{return myView;}
+	view& data()		{return myView;}
+
+private:
+	view myView;
 };
