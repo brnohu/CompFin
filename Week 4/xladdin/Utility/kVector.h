@@ -144,8 +144,10 @@ public:
 	}
 
 	//	to matrix view
-	kMatrixView<T> asRowMatrix(){return kMatrixView<T>(1,size(),data());}
-	kMatrixView<T> asColMatrix(){return kMatrixView<T>(size(),1,data());}
+	const kMatrixView<T> asRowMatrix() const { return kMatrixView<T>(data(),1,size()); }
+	const kMatrixView<T> asColMatrix() const { return kMatrixView<T>(data(),size(),1); }
+	kMatrixView<T> asRowMatrix(){return kMatrixView<T>(data(),1,size());}
+	kMatrixView<T> asColMatrix(){return kMatrixView<T>(data(),size(),1);}
 
 	//	to view
 	const kVectorView<T> operator()(int i,int size)	const{return kVectorView<T>(&(*this)(i),size);}
