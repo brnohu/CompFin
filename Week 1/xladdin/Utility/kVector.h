@@ -95,8 +95,8 @@ public:
 	const kVectorView<T> operator()(int i,int size) const { return kVectorView<T>(&(*this)(i),size); }
 	kVectorView<T>		 operator()(int i,int size)       { return kVectorView<T>(&(*this)(i),size); }
 
-	const kMatrixView<T> asRowMatrix() const { return kMatrixView<T>(data(),1,size()); }
-	const kMatrixView<T> asColMatrix() const { return kMatrixView<T>(data(),size(),1); }
+	const kMatrixView<T> asRowMatrix() const { return kMatrixView<T>(const_cast<kVector<T>*>(this)->myData,1,size());}
+	const kMatrixView<T> asColMatrix() const { return kMatrixView<T>(const_cast<kVector<T>*>(this)->myData,size(),1);}
 	kMatrixView<T> asRowMatrix()			 { return kMatrixView<T>(data(),1,size()); }
 	kMatrixView<T> asColMatrix()             { return kMatrixView<T>(data(),size(),1); }
 
@@ -144,8 +144,8 @@ public:
 	}
 
 	//	to matrix view
-	const kMatrixView<T> asRowMatrix() const { return kMatrixView<T>(data(),1,size()); }
-	const kMatrixView<T> asColMatrix() const { return kMatrixView<T>(data(),size(),1); }
+	const kMatrixView<T> asRowMatrix() const { return kMatrixView<T>(const_cast<kVectorView<T>*>(this)->myView,1,size());}
+	const kMatrixView<T> asColMatrix() const { return kMatrixView<T>(const_cast<kVectorView<T>*>(this)->myView,size(),1);}
 	kMatrixView<T> asRowMatrix(){return kMatrixView<T>(data(),1,size());}
 	kMatrixView<T> asColMatrix(){return kMatrixView<T>(data(),size(),1);}
 
