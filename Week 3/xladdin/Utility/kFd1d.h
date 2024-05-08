@@ -134,40 +134,9 @@ kFd1d<V>::calcAx(
 	bool			tr,
 	kMatrix<V>&		A) const
 {
-	//	dims
-	int n  = myX.size();
-	int m  = myDxx.cols();
-	int mm = m / 2;
-
-	//	resize
-	A.resize(n, myDxx.cols());
-
-	//	helps
-	int i, j;
-
-	//	first order operator
-	const kMatrix<V>*    Dx = 0;
-	if (wind < 0)	     Dx = &myDxd;
-	else if (wind == 0)  Dx = &myDx;
-	else if (wind == 1)  Dx = &myDxu;
-
-	//	loop
-	for(i=0;i<n;++i)
-	{
-		if(wind>1)
-		{
-			Dx = myMu(i)<0.0 ? &myDxd : &myDxu;
-		}
-		for(j=0;j<m;++j)
-		{
-			A(i,j) = dtTheta * (myMu(i) * (*Dx)(i, j) + 0.5 * myVar(i) * myDxx(i, j));
-		}
-		A(i,mm) += one - dtTheta * myR(i);
-	}
-
-	//	transpose
-	if(tr) kMatrixAlgebra::transpose(mm, A);
-
+	
+	// to do: implement
+	// 
 	//	done
 	return;
 }
